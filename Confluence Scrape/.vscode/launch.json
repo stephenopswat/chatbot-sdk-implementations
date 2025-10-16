@@ -1,0 +1,29 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: getPageVersions.py",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}\\getPageVersions.py",
+            "args": "--space SECOPS",
+//            "console": "integratedTerminal",
+            "justMyCode": true,
+            "preLaunchTask": "pwd"
+//            "preLaunchTask": "source .venv/bin/activate"
+        },
+        {
+            "name": "ConfluenceDumpHtml",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/confluenceDumpWithPython.py",
+            "args": "--site optile --mode pageprops --page 78872647",
+//            "console": "integratedTerminal",
+            "justMyCode": true,
+//            "preLaunchTask": "source .venv/bin/activate"
+        }
+    ]
+}
