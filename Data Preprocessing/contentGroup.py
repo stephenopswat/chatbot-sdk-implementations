@@ -1,3 +1,5 @@
+"""Group JSON files by prefix and combine them into single JSON files with metadata."""
+
 import os
 import json
 import shutil
