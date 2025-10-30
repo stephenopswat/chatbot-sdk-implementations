@@ -1,0 +1,69 @@
+[
+  {
+    "id": "a1b2c3d4-e5f6-7890-abcd-1234567890ab",
+    "title": "MetaDefender_Core_Setup_Guide_Chunk_5",
+    "content": "To run a scan, you must first initialize the client. Here is a simple Python example: `import opswat_sdk; client = opswat_sdk.Client(api_key='YOUR_KEY')`. After that, you can call the scan method.",
+    "content_info": {
+      "doc_type": "example",
+      "languages": [
+        "English",
+        "Python"
+      ],
+      "tags": [
+        "API",
+        "client",
+        "scan",
+        "implementation"
+      ]
+    }
+  },
+  {
+    "id": "b2c3d4e5-f6a7-8901-bcde-2345678901bc",
+    "title": "OESIS_SDK_Examples_Chunk_12",
+    "content": "public class OesisClient\n{\n    public OesisResult ScanFile(string filePath)\n    {\n        // Implementation details here\n        if (string.IsNullOrEmpty(filePath))\n        {            throw new ArgumentNullException(nameof(filePath));\n        }\n        return new OesisResult { Status = \"Clean\" };\n    }\n}",
+    "content_info": {
+      "doc_type": "code snippet",
+      "languages": [
+        "C#"
+      ],
+      "tags": [
+        "OesisClient",
+        "scan",
+        "implementation"
+      ]
+    }
+  },
+  {
+    "id": "c3d4e5f6-a7b8-9012-cdef-3456789012cd",
+    "title": "MDCloud_Client_Chunk_2",
+    "content": "package com.opswat.mdcloud;\n\nimport java.io.File;\n\npublic class MdCloudClient {\n    private String apiKey;\n\n    public MdCloudClient(String apiKey) {\n        this.apiKey = apiKey;\n    }\n\n    public String hashLookup(String hash) {\n        // Logic for hash lookup\n        return \"Scanning...\";\n    }\n}",
+    "content_info": {
+      "doc_type": "code snippet",
+      "languages": [
+        "Java"
+      ],
+      "tags": [
+        "MdCloudClient",
+        "hash lookup",
+        "implementation"
+      ]
+    }
+  },
+  {
+    "id": "d4e5f6a7-b8c9-0123-def0-4567890123de",
+    "title": "SDK_FAQ_Chunk_8",
+    "content": "Question: How do I handle a '401 Unauthorized' error?\nAnswer: A 401 error means your API key is invalid or has expired. In Python, you should wrap your call in a try-except block to catch the exception. Example: `try:\n    client.scan_file(file_path)\nexcept opswat_sdk.UnauthorizedError as e:\n    print(\"Error: Check your API key.\")`",
+    "content_info": {
+      "doc_type": "faq",
+      "languages": [
+        "English",
+        "Python"
+      ],
+      "tags": [
+        "401",
+        "error-handling",
+        "API key"
+      ]
+    }
+  }
+]
