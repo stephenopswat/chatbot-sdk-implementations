@@ -9,11 +9,10 @@ Nonetheless, the refactoring will require only 2 files and accept command-line a
 * `myModules.py`: Contains all the required functions.
 * `confluenceDumpWithPython.py`: Script to use with the following command line args:
   * `-m, --mode`: The export mode, `single`, `space`, `bylabel`, `pageprops` (required).
-    * Note: Only `single`, `pageprops` and `space` have been implemented so far.
+    * Note: Only `space` and `url` have been implemented so far.
   * `-S, --site`: The Atlassian Site (required).
-  * `-s, --space`: The Space Key (if needed).
-  * `-p, --page`: The Page ID (if needed).
-  * `-l, --label`: The Page label (if needed).
+  * `-s, --space`: The Space Key (if using `space` mode).
+  * `--url: Thefull URL of the page (if using `url` mode).
   * `-x, --sphinx`: The `_images` and `_static` folders are placed at the root of the export folder, instead of together with the exported HTML files.
   * `--notags`: Does not add the tags directives to the rst files (when the `sphinx-tags` addon is not used).
 * `updatePageLinks.py`: Update online confluence links to the local files that have been downloaded so far.
