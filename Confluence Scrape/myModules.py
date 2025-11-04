@@ -29,6 +29,35 @@ attach_dir = "_images/"
 emoticons_dir = "_images/"
 styles_dir = "_static/"
 
+def save_plain_text(html_content, output_filepath):
+    """
+    Extracts plain text from an HTML string using BeautifulSoup
+    and saves it to a file.
+    """
+    try:
+        soup = bs(html_content, "html.parser")
+        plain_text = soup.get_text(separator=" ", strip=True)
+
+        lines = (line.strip() for line in plain_text.splitlines())
+        chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+        cleaned_text = "\n".join(chunk for chunk in chunks if chunk)
+
+        with open(output_filepath, "w", encoding="utf-8") as f:
+            f.write(cleaned_text)
+        print(f"  |-> Saved plain text to {output_filepath}")
+    except Exception as e:
+        print(f"  [!] Could not save plain text file: {e}")
+
+
+def sanitize_filename(title: str) -> str:
+    """
+    Removes illegal characters from a title to make a valid filename.
+    Replaces spaces with underscores.
+    """
+    # Replaces illegal chars (anything not a word char, dot, hyphen, or space) with _
+    title = re.sub(r'[^\w_\.\- ]+', '_', title)
+    return title.replace(" ", "_")
+
 def set_variables():
     """Set variables for export folders"""
     dict_vars = {}
@@ -184,6 +213,278 @@ def get_editor_version(arg_site,arg_page_id,arg_username,arg_api_token):
     response = requests.get(server_url, auth=(arg_username, arg_api_token))
     return(response)
 
+# def dump_html(
+#     arg_site,
+#     arg_html,
+#     arg_title,
+#     arg_page_id,
+#     arg_outdir_base,
+#     arg_outdir_content,
+#     arg_page_labels,
+#     arg_page_parent,
+#     arg_username,
+#     arg_api_token,
+#     arg_sphinx_compatible=True,
+#     arg_sphinx_tags=False,
+#     arg_type="",
+#     arg_html_output=False,
+#     arg_rst_output=True,
+#     arg_show_labels=False
+#     ):
+#     """Create HTML and RST files
+
+#     Args:
+#         arg_site: Name of the Confluence Site
+#         arg_html: HTML Content to use for page
+#         arg_title: Title of the page
+#         arg_page_id: Page ID
+#         arg_outdir_base: Base output folder
+#         arg_outdir_content: Output folder for Content
+#         arg_page_labels: Labels of the page
+#         arg_page_parent: Parent of the page
+#         arg_username: Username for authentication
+#         arg_api_token: API Token for authentication
+#         arg_sphinx_compatible: Place _static and _images folder at root of output folder
+#         arg_sphinx_tags: Add tags to output RST
+#         arg_type: For Page Properties, the type of page: "report", "child" or "common" if it's not for Page Properties
+
+#     Returns:
+#         HTML, RST and all attachments, embeds and emoticons
+#     """
+#     my_vars = set_variables()
+#     my_emoticons_list = []
+#     my_outdir_content = arg_outdir_content
+#     #my_outdir_content = os.path.join(arg_outdir_base,str(arg_page_id) + "-" + str(arg_title))      # this is for html and rst files
+#     if not os.path.exists(my_outdir_content):
+#         os.mkdir(my_outdir_content)
+#     #myOutdir = os.path.join(arg_outdir,str(arg_page_id) + "-" + str(arg_title))
+#     my_outdirs = mk_outdirs(arg_outdir_base)        # this is for everything for _images and _static
+#     my_vars = set_variables()     # create a dict with the 3 folder paths: attach, emoticons, styles
+
+#     soup = bs(arg_html, "html.parser")
+
+#     #
+#     # removing elements we don't need like
+#     # * <div class="expand-control"...
+#     # * <pre class="syntaxhighlighter-pre"...
+#     #
+#     my_undesirables = soup.findAll('div',class_="expand-control")
+#     for div in my_undesirables:
+#         div.decompose()
+
+#     # Find all pre tags
+#     pre_tags = soup.find_all('pre')
+#     # Remove the class 'syntaxhighlighter-pre' from each pre tag
+#     for pre in pre_tags:
+#         pre['class'] = [c for c in pre.get('class', []) if c != 'syntaxhighlighter-pre']
+
+#     # continuing
+#     html_file_name = (f"{arg_title}.html").replace("/","-").replace(":","-").replace(" ","_")
+#     html_file_path = os.path.join(my_outdir_content,html_file_name)
+#     my_attachments = get_attachments(arg_site,arg_page_id,str(my_outdirs[0]),arg_username,arg_api_token)
+#     #
+#     # used for pageprops mode
+#     #
+#     #if (arg_type == "child"):
+#         #my_report_children_dict = get_page_properties_children(arg_site,arg_html,arg_outdir,arg_username,arg_api_token)[1]              # get list of all page properties children
+#         #my_report_children_dict[arg_page_id].update({"Filename": arg_html_file_name})
+#     if (arg_type == "report"):
+#         my_report_children_dict= get_page_properties_children(arg_site,arg_html,my_outdir_content,arg_username,arg_api_token)[1]      # dict
+#         my_page_properties_items = soup.findAll('td',class_="title")       # list
+#         for item in my_page_properties_items:
+#             id = item['data-content-id']
+#             item.a['href'] = (f"{my_report_children_dict[id]['Name']}.html")
+#     #
+#     # dealing with "confluence-embedded-image confluence-external-resource"
+#     #
+#     my_embeds_externals = soup.findAll('img',class_="confluence-embedded-image confluence-external-resource")
+#     my_embeds_externals_counter = 0
+#     for embed_ext in my_embeds_externals:
+#         orig_embed_external_path = embed_ext['src']     # online link to file
+#         orig_embed_external_name = orig_embed_external_path.rsplit('/',1)[-1].rsplit('?')[0]      # just the file name
+#         my_embed_external_name = remove_illegal_characters((f"{arg_page_id}-{my_embeds_externals_counter}-{requests.utils.unquote(orig_embed_external_name)}").replace(" ", "_").replace(":","-"))    # local filename
+#         my_embed_external_path = os.path.join(my_outdirs[0],my_embed_external_name)        # local filename and path
+#         if arg_sphinx_compatible == True:
+#             my_embed_external_path_relative = os.path.join(str('../' + my_vars['attach_dir']),my_embed_external_name)
+#         else:
+#             my_embed_external_path_relative = os.path.join(my_vars['attach_dir'],my_embed_external_name)
+#         try:
+#             if not os.path.exists(my_embed_external_path):
+#                 to_download = requests.get(orig_embed_external_path, allow_redirects=True)
+#                 open(my_embed_external_path,'wb').write(to_download.content)
+#             img = Image.open(my_embed_external_path)
+#         except:
+#             print(f"WARNING: Skipping embed file {my_embed_external_path} due to issues. url: {orig_embed_external_path}")
+#         else:
+#             if img is not None:
+#                 if img.width < 600:
+#                     embed_ext['width'] = img.width
+#                 else:
+#                     embed_ext['width'] = 600
+#                 img.close
+#                 embed_ext['height'] = "auto"
+#                 embed_ext['onclick'] = f"window.open(\"{my_embed_external_path_relative}\")"
+#                 embed_ext['src'] = str(my_embed_external_path_relative)
+#                 embed_ext['data-image-src'] = str(my_embed_external_path_relative)
+#                 my_embeds_externals_counter = my_embeds_externals_counter + 1
+
+#     #
+#     # dealing with "confluence-embedded-image"
+#     #
+#     my_embeds = soup.findAll('img',class_=re.compile("^confluence-embedded-image"))
+#     print(str(len(my_embeds)) + " embedded images.")
+#     for embed in my_embeds:
+#         orig_embed_path = embed['src']        # online link to file
+#         orig_embed_name = orig_embed_path.rsplit('/',1)[-1].rsplit('?')[0]      # online file name
+#         my_embed_name = remove_illegal_characters(requests.utils.unquote(orig_embed_name).replace(" ", "_"))    # local file name
+#         my_embed_path = my_outdirs[0] + my_embed_name                            # local file path
+#         if arg_sphinx_compatible == True:
+#             my_embed_path_relative = f"../{my_vars['attach_dir']}{my_embed_name}"
+#         else:
+#             my_embed_path_relative = f"{my_vars['attach_dir']}{my_embed_name}"
+#         img = None
+#         try:
+#             if not os.path.exists(my_embed_path):
+#                 to_download = requests.get(orig_embed_path, allow_redirects=True, auth=(arg_username, arg_api_token))
+#                 open(my_embed_path,'wb').write(to_download.content)
+#             img = Image.open(my_embed_path)
+#         except:
+#             print(f"WARNING: Skipping embed file {my_embed_path} due to issues. url: {orig_embed_path}")
+#         else:
+#             if img is not None:
+#                 if img.width < 600:
+#                     embed['width'] = img.width
+#                 else:
+#                     embed['width'] = 600
+#                 img.close
+#                 embed['height'] = "auto"
+#                 embed['onclick'] = f"window.open(\"{my_embed_path_relative}\")"
+#             embed['src'] = my_embed_path_relative
+#     #
+#     # dealing with "emoticon" and expands' "grey_arrow_down.png"
+#     #
+#     my_emoticons = soup.findAll('img',class_=re.compile("emoticon|expand-control-image"))
+#     print(f"{len(my_emoticons)} emoticons.")
+#     for emoticon in my_emoticons:
+#         my_emoticon_title = emoticon['src'].rsplit('/',1)[-1]     # just filename
+#         if arg_sphinx_compatible == True:
+#             my_emoticon_path = f"../{my_vars['emoticons_dir']}{my_emoticon_title}"
+#         else:
+#             my_emoticon_path = f"{my_vars['emoticons_dir']}{my_emoticon_title}"
+#         if my_emoticon_title not in my_emoticons_list:
+#             my_emoticons_list.append(my_emoticon_title)
+#             print(f"Getting emoticon: {my_emoticon_title}")
+#             file_path = os.path.join(my_outdirs[1],remove_illegal_characters(my_emoticon_title))
+#             if not os.path.exists(file_path):
+#                 emoticon_src = emoticon['src']
+#                 try:
+#                     request_emoticons = requests.get(emoticon_src, auth=(arg_username, arg_api_token))
+#                     open(file_path, 'wb').write(request_emoticons.content)
+#                 except:
+#                     print(f"WARNING: Skipping emoticon file {file_path} due to issues. url: {emoticon_src}")
+#         emoticon['src'] = my_emoticon_path
+
+#     my_body_export_view = get_body_export_view(arg_site,arg_page_id,arg_username,arg_api_token).json()
+#     page_url = f"{my_body_export_view['_links']['base']}{my_body_export_view['_links']['webui']}"
+#     if arg_sphinx_compatible == True:
+#         styles_dir_relative = f"../{my_vars['styles_dir']}"
+#     else:
+#         styles_dir_relative = my_vars['styles_dir']
+
+#     my_header = (f"<html>\n"
+#                 f"<head>\n"
+#                 f"<title>{arg_title}</title>\n"
+#                 f"<link rel=\"stylesheet\" href=\"{styles_dir_relative}confluence.css\" type=\"text/css\" />\n"
+#                 f"<meta name=\"generator\" content=\"confluenceExportHTML\" />\n"
+#                 f"<META http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">\n"
+#                 f"<meta name=\"ConfluencePageLabels\" content=\"{arg_page_labels}\">\n"
+#                 f"<meta name=\"ConfluencePageID\" content=\"{arg_page_id}\">\n"
+#                 f"<meta name=\"ConfluencePageParent\" content=\"{arg_page_parent}\">\n"
+#                 f"</head>\n"
+#                 f"<body>\n"
+#                 f"<h2>{arg_title}</h2>\n"
+#                 f"<p>Original URL: <a href=\"{page_url}\"> {arg_title}</a><hr>\n"
+#     )
+
+
+#     myFooter = (f"</body>\n"
+#                 f"</html>"
+#     )
+#     #
+#     # At the end of the page, put a link to all attachments.
+#     #
+#     if arg_sphinx_compatible == True:
+#         attach_dir = "../" + my_vars['attach_dir']
+#     else:
+#         attach_dir = my_vars['attach_dir']
+#     if len(my_attachments) > 0:
+#         my_pre_footer = "<h2>Attachments</h2><ol>"
+#         for attachment in my_attachments:
+#             my_pre_footer += (f"<li><a href=\"{os.path.join(attach_dir,attachment)}\">{attachment}</a></li>")
+#         my_pre_footer += "</ol></br>"
+
+#     #
+#     # Putting HTML together
+#     #
+#     pretty_html = soup.prettify()
+#     html_file = open(html_file_path, 'w', encoding='utf-8')
+#     html_file.write(my_header)
+#     html_file.write(pretty_html)
+#     if len(my_attachments) > 0:
+#         html_file.write(my_pre_footer)
+#     html_file.write(myFooter)
+#     html_file.close()
+#     if arg_html_output == True:
+#         print(f"Exported HTML file {html_file_path}")
+#     #
+#     # convert html to rst
+#     #
+#     if not arg_rst_output:
+#         return
+    
+#     rst_file_name = f"{html_file_name.replace('html','rst')}"
+#     rst_file_path = os.path.join(my_outdir_content,rst_file_name)
+#     try:
+#         output_rst = pypandoc.convert_file(str(html_file_path), 'rst', format='html',extra_args=['--standalone','--wrap=none','--list-tables'])
+#     except:
+#         print("There was an issue generating an RST file from the page.")
+#     else:
+#         ##
+#         ## RST Header with Page Metadata
+#         ##
+#         if (arg_sphinx_compatible == True):
+#             rst_page_header = (f":conf_pagetype: {arg_type}\n"
+#                 f":conf_pageid: {arg_page_id}\n"
+#                 f":conf_parent: {arg_page_parent}\n"
+#                 f":conf_labels: {arg_page_labels}\n"
+#                 f":doc_title: {arg_title}\n"
+#                 f"\n"
+#             )
+#         else:
+#             rst_page_header = (f".. meta::\n"
+#                 f"    :confluencePageId: {arg_page_id} \n"
+#                 f"    :confluencePageLabels: {arg_page_labels} \n"
+#                 f"    :confluencePageParent: {arg_page_parent} \n"
+#                 f"\n"
+#             )
+#         ## Footer with list of page labels
+#         if arg_show_labels == True:
+#             footer_rst = (f"...."
+#                 f"\n"
+#                 f"\n**Page labels**: {arg_page_labels} \n")
+#         else:
+#             footer_rst = ""
+
+#         rst_file = open(rst_file_path, 'w', encoding='utf-8')
+#         rst_file.write(rst_page_header)
+#         rst_file.write(output_rst)
+#         rst_file.write(footer_rst)
+#         rst_file.close()
+#         print(f"Exported RST file: {rst_file_path}")
+#         if arg_html_output == False:
+#             os.remove(html_file_path)
+# import os # Make sure os is imported, as it's used for os.path.join
+
 def dump_html(
     arg_site,
     arg_html,
@@ -202,255 +503,26 @@ def dump_html(
     arg_rst_output=True,
     arg_show_labels=False
     ):
-    """Create HTML and RST files
-
-    Args:
-        arg_site: Name of the Confluence Site
-        arg_html: HTML Content to use for page
-        arg_title: Title of the page
-        arg_page_id: Page ID
-        arg_outdir_base: Base output folder
-        arg_outdir_content: Output folder for Content
-        arg_page_labels: Labels of the page
-        arg_page_parent: Parent of the page
-        arg_username: Username for authentication
-        arg_api_token: API Token for authentication
-        arg_sphinx_compatible: Place _static and _images folder at root of output folder
-        arg_sphinx_tags: Add tags to output RST
-        arg_type: For Page Properties, the type of page: "report", "child" or "common" if it's not for Page Properties
-
-    Returns:
-        HTML, RST and all attachments, embeds and emoticons
     """
-    my_vars = set_variables()
-    my_emoticons_list = []
-    my_outdir_content = arg_outdir_content
-    #my_outdir_content = os.path.join(arg_outdir_base,str(arg_page_id) + "-" + str(arg_title))      # this is for html and rst files
-    if not os.path.exists(my_outdir_content):
-        os.mkdir(my_outdir_content)
-    #myOutdir = os.path.join(arg_outdir,str(arg_page_id) + "-" + str(arg_title))
-    my_outdirs = mk_outdirs(arg_outdir_base)        # this is for everything for _images and _static
-    my_vars = set_variables()     # create a dict with the 3 folder paths: attach, emoticons, styles
-
-    soup = bs(arg_html, "html.parser")
-
-    #
-    # removing elements we don't need like
-    # * <div class="expand-control"...
-    # * <pre class="syntaxhighlighter-pre"...
-    #
-    my_undesirables = soup.findAll('div',class_="expand-control")
-    for div in my_undesirables:
-        div.decompose()
-
-    # Find all pre tags
-    pre_tags = soup.find_all('pre')
-    # Remove the class 'syntaxhighlighter-pre' from each pre tag
-    for pre in pre_tags:
-        pre['class'] = [c for c in pre.get('class', []) if c != 'syntaxhighlighter-pre']
-
-    # continuing
-    html_file_name = (f"{arg_title}.html").replace("/","-").replace(":","-").replace(" ","_")
-    html_file_path = os.path.join(my_outdir_content,html_file_name)
-    my_attachments = get_attachments(arg_site,arg_page_id,str(my_outdirs[0]),arg_username,arg_api_token)
-    #
-    # used for pageprops mode
-    #
-    #if (arg_type == "child"):
-        #my_report_children_dict = get_page_properties_children(arg_site,arg_html,arg_outdir,arg_username,arg_api_token)[1]              # get list of all page properties children
-        #my_report_children_dict[arg_page_id].update({"Filename": arg_html_file_name})
-    if (arg_type == "report"):
-        my_report_children_dict= get_page_properties_children(arg_site,arg_html,my_outdir_content,arg_username,arg_api_token)[1]      # dict
-        my_page_properties_items = soup.findAll('td',class_="title")       # list
-        for item in my_page_properties_items:
-            id = item['data-content-id']
-            item.a['href'] = (f"{my_report_children_dict[id]['Name']}.html")
-    #
-    # dealing with "confluence-embedded-image confluence-external-resource"
-    #
-    my_embeds_externals = soup.findAll('img',class_="confluence-embedded-image confluence-external-resource")
-    my_embeds_externals_counter = 0
-    for embed_ext in my_embeds_externals:
-        orig_embed_external_path = embed_ext['src']     # online link to file
-        orig_embed_external_name = orig_embed_external_path.rsplit('/',1)[-1].rsplit('?')[0]      # just the file name
-        my_embed_external_name = remove_illegal_characters((f"{arg_page_id}-{my_embeds_externals_counter}-{requests.utils.unquote(orig_embed_external_name)}").replace(" ", "_").replace(":","-"))    # local filename
-        my_embed_external_path = os.path.join(my_outdirs[0],my_embed_external_name)        # local filename and path
-        if arg_sphinx_compatible == True:
-            my_embed_external_path_relative = os.path.join(str('../' + my_vars['attach_dir']),my_embed_external_name)
-        else:
-            my_embed_external_path_relative = os.path.join(my_vars['attach_dir'],my_embed_external_name)
-        try:
-            if not os.path.exists(my_embed_external_path):
-                to_download = requests.get(orig_embed_external_path, allow_redirects=True)
-                open(my_embed_external_path,'wb').write(to_download.content)
-            img = Image.open(my_embed_external_path)
-        except:
-            print(f"WARNING: Skipping embed file {my_embed_external_path} due to issues. url: {orig_embed_external_path}")
-        else:
-            if img is not None:
-                if img.width < 600:
-                    embed_ext['width'] = img.width
-                else:
-                    embed_ext['width'] = 600
-                img.close
-                embed_ext['height'] = "auto"
-                embed_ext['onclick'] = f"window.open(\"{my_embed_external_path_relative}\")"
-                embed_ext['src'] = str(my_embed_external_path_relative)
-                embed_ext['data-image-src'] = str(my_embed_external_path_relative)
-                my_embeds_externals_counter = my_embeds_externals_counter + 1
-
-    #
-    # dealing with "confluence-embedded-image"
-    #
-    my_embeds = soup.findAll('img',class_=re.compile("^confluence-embedded-image"))
-    print(str(len(my_embeds)) + " embedded images.")
-    for embed in my_embeds:
-        orig_embed_path = embed['src']        # online link to file
-        orig_embed_name = orig_embed_path.rsplit('/',1)[-1].rsplit('?')[0]      # online file name
-        my_embed_name = remove_illegal_characters(requests.utils.unquote(orig_embed_name).replace(" ", "_"))    # local file name
-        my_embed_path = my_outdirs[0] + my_embed_name                            # local file path
-        if arg_sphinx_compatible == True:
-            my_embed_path_relative = f"../{my_vars['attach_dir']}{my_embed_name}"
-        else:
-            my_embed_path_relative = f"{my_vars['attach_dir']}{my_embed_name}"
-        img = None
-        try:
-            if not os.path.exists(my_embed_path):
-                to_download = requests.get(orig_embed_path, allow_redirects=True, auth=(arg_username, arg_api_token))
-                open(my_embed_path,'wb').write(to_download.content)
-            img = Image.open(my_embed_path)
-        except:
-            print(f"WARNING: Skipping embed file {my_embed_path} due to issues. url: {orig_embed_path}")
-        else:
-            if img is not None:
-                if img.width < 600:
-                    embed['width'] = img.width
-                else:
-                    embed['width'] = 600
-                img.close
-                embed['height'] = "auto"
-                embed['onclick'] = f"window.open(\"{my_embed_path_relative}\")"
-            embed['src'] = my_embed_path_relative
-    #
-    # dealing with "emoticon" and expands' "grey_arrow_down.png"
-    #
-    my_emoticons = soup.findAll('img',class_=re.compile("emoticon|expand-control-image"))
-    print(f"{len(my_emoticons)} emoticons.")
-    for emoticon in my_emoticons:
-        my_emoticon_title = emoticon['src'].rsplit('/',1)[-1]     # just filename
-        if arg_sphinx_compatible == True:
-            my_emoticon_path = f"../{my_vars['emoticons_dir']}{my_emoticon_title}"
-        else:
-            my_emoticon_path = f"{my_vars['emoticons_dir']}{my_emoticon_title}"
-        if my_emoticon_title not in my_emoticons_list:
-            my_emoticons_list.append(my_emoticon_title)
-            print(f"Getting emoticon: {my_emoticon_title}")
-            file_path = os.path.join(my_outdirs[1],remove_illegal_characters(my_emoticon_title))
-            if not os.path.exists(file_path):
-                emoticon_src = emoticon['src']
-                try:
-                    request_emoticons = requests.get(emoticon_src, auth=(arg_username, arg_api_token))
-                    open(file_path, 'wb').write(request_emoticons.content)
-                except:
-                    print(f"WARNING: Skipping emoticon file {file_path} due to issues. url: {emoticon_src}")
-        emoticon['src'] = my_emoticon_path
-
-    my_body_export_view = get_body_export_view(arg_site,arg_page_id,arg_username,arg_api_token).json()
-    page_url = f"{my_body_export_view['_links']['base']}{my_body_export_view['_links']['webui']}"
-    if arg_sphinx_compatible == True:
-        styles_dir_relative = f"../{my_vars['styles_dir']}"
-    else:
-        styles_dir_relative = my_vars['styles_dir']
-
-    my_header = (f"<html>\n"
-                f"<head>\n"
-                f"<title>{arg_title}</title>\n"
-                f"<link rel=\"stylesheet\" href=\"{styles_dir_relative}confluence.css\" type=\"text/css\" />\n"
-                f"<meta name=\"generator\" content=\"confluenceExportHTML\" />\n"
-                f"<META http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">\n"
-                f"<meta name=\"ConfluencePageLabels\" content=\"{arg_page_labels}\">\n"
-                f"<meta name=\"ConfluencePageID\" content=\"{arg_page_id}\">\n"
-                f"<meta name=\"ConfluencePageParent\" content=\"{arg_page_parent}\">\n"
-                f"</head>\n"
-                f"<body>\n"
-                f"<h2>{arg_title}</h2>\n"
-                f"<p>Original URL: <a href=\"{page_url}\"> {arg_title}</a><hr>\n"
-    )
-
-
-    myFooter = (f"</body>\n"
-                f"</html>"
-    )
-    #
-    # At the end of the page, put a link to all attachments.
-    #
-    if arg_sphinx_compatible == True:
-        attach_dir = "../" + my_vars['attach_dir']
-    else:
-        attach_dir = my_vars['attach_dir']
-    if len(my_attachments) > 0:
-        my_pre_footer = "<h2>Attachments</h2><ol>"
-        for attachment in my_attachments:
-            my_pre_footer += (f"<li><a href=\"{os.path.join(attach_dir,attachment)}\">{attachment}</a></li>")
-        my_pre_footer += "</ol></br>"
-
-    #
-    # Putting HTML together
-    #
-    pretty_html = soup.prettify()
-    html_file = open(html_file_path, 'w', encoding='utf-8')
-    html_file.write(my_header)
-    html_file.write(pretty_html)
-    if len(my_attachments) > 0:
-        html_file.write(my_pre_footer)
-    html_file.write(myFooter)
-    html_file.close()
-    if arg_html_output == True:
-        print(f"Exported HTML file {html_file_path}")
-    #
-    # convert html to rst
-    #
-    if not arg_rst_output:
-        return
+    This function now ONLY saves a plain text file.
+    It keeps the original arguments to maintain the script's structure.
+    All arguments except arg_html, arg_title, and arg_outdir_content are ignored.
+    """
     
-    rst_file_name = f"{html_file_name.replace('html','rst')}"
-    rst_file_path = os.path.join(my_outdir_content,rst_file_name)
     try:
-        output_rst = pypandoc.convert_file(str(html_file_path), 'rst', format='html',extra_args=['--standalone','--wrap=none','--list-tables'])
-    except:
-        print("There was an issue generating an RST file from the page.")
-    else:
-        ##
-        ## RST Header with Page Metadata
-        ##
-        if (arg_sphinx_compatible == True):
-            rst_page_header = (f":conf_pagetype: {arg_type}\n"
-                f":conf_pageid: {arg_page_id}\n"
-                f":conf_parent: {arg_page_parent}\n"
-                f":conf_labels: {arg_page_labels}\n"
-                f":doc_title: {arg_title}\n"
-                f"\n"
-            )
-        else:
-            rst_page_header = (f".. meta::\n"
-                f"    :confluencePageId: {arg_page_id} \n"
-                f"    :confluencePageLabels: {arg_page_labels} \n"
-                f"    :confluencePageParent: {arg_page_parent} \n"
-                f"\n"
-            )
-        ## Footer with list of page labels
-        if arg_show_labels == True:
-            footer_rst = (f"...."
-                f"\n"
-                f"\n**Page labels**: {arg_page_labels} \n")
-        else:
-            footer_rst = ""
+        # 1. Sanitize the title to create a safe filename
+        # (This assumes 'sanitize_filename' is defined elsewhere in your script)
+        safe_filename = sanitize_filename(arg_title) + ".txt"
 
-        rst_file = open(rst_file_path, 'w', encoding='utf-8')
-        rst_file.write(rst_page_header)
-        rst_file.write(output_rst)
-        rst_file.write(footer_rst)
-        rst_file.close()
-        print(f"Exported RST file: {rst_file_path}")
-        if arg_html_output == False:
-            os.remove(html_file_path)
+        # 2. Define the output file path.
+        # We use arg_outdir_content as the flat output folder.
+        text_filepath = os.path.join(arg_outdir_content, safe_filename)
+        
+        # 3. Call the save_plain_text function
+        # (This assumes 'save_plain_text' is defined elsewhere in your script)
+        save_plain_text(arg_html, text_filepath)
+
+    except NameError as e:
+        print(f"  [!] ERROR: A helper function (like 'save_plain_text' or 'sanitize_filename') is missing: {e}")
+    except Exception as e:
+        print(f"  [!] ERROR saving {arg_title}: {e}")

@@ -59,6 +59,6 @@ def process_all_files(input_dir: str, output_dir: str):
 
 if __name__ == "__main__":
     process_all_files(
-        r"C:\Users\alice.dang\OPSWAT\Tri Cuong Stephen Luong - All Documentation",
-        r"C:\Users\alice.dang\OPSWAT\Processed_JSON"
+        r"C:\chatbot-sdk-implementations\Confluence Scrape\output",
+        r"C:\chatbot-sdk-implementations\Confluence Scrape\processed confluence files"
     )
